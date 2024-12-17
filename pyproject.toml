@@ -1,0 +1,10 @@
+[project]
+name = "hackathon-inditex-data-recommender"
+version = "0.1.0"
+description = "Nuwe Inditex Hackaton Solution - Ezequiel M Rivero"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2.0",
+    "pandas>=2.2.3",
+]
