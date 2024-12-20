@@ -1,3 +1,60 @@
+# Project specific
+/data/
+
+# Ignore Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore virtual environment directories
+env/
+venv/
+ENV/
+.venv/
+.ENV/
+
+# Ignore IDE/editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ignore Python packages
+*.egg
+*.egg-info/
+dist/
+build/
+*.eggs
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.out
+*.pid
+
+# Ignore coverage reports
+.coverage
+*.cover
+coverage.xml
+htmlcov/
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore mypy cache
+.mypy_cache/
+
+# Ignore any database or test artifacts
+*.sqlite3
+*.db
+
+# Ignore secrets (ensure not to accidentally commit)
+.env
+*.env
+
 # Node artifact files
 node_modules/
 dist/

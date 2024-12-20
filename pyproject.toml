@@ -5,6 +5,18 @@ description = "Nuwe Inditex Hackaton Solution - Ezequiel M Rivero"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ipykernel>=6.29.5",
+    "matplotlib>=3.10.0",
     "numpy>=2.2.0",
     "pandas>=2.2.3",
+    "pip>=24.3.1",
+    "polars>=1.17.1",
+    "pyarrow>=18.1.0",
+    "requests>=2.32.3",
+    "scikit-learn>=1.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
 ]
