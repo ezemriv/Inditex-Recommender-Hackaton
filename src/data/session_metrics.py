@@ -23,4 +23,32 @@ def get_session_metrics(df: pd.DataFrame, user_id: int) -> pd.DataFrame:
     -------
     Pandas Dataframe with some metrics for all the sessions of the given user.
     """
-    ...
+    
+    # Filter data for the given user
+    user_df = df[df["user_id"] == user_id]
+    if user_df.empty:
+        return pd.DataFrame(
+            columns=["user_id", "session_id", "total_session_time", "cart_addition_ratio"]
+        )
+
+    # Ensure timestamp is in datetime format
+    if not pd.api.types.is_datetime64_any_dtype(user_df["timestamp_local"]):
+        user_df["timestamp_local"] = pd.to_datetime(user_df["timestamp_local"])
+
+    session_ids = user_df["session_id"].unique()
+    metrics = []
+
+    for session_id in session_ids:
+        session_df = user_df[user_df["session_id"] == session_id]
+        total_session_time = (session_df["timestamp_local"].max() - session_df["timestamp_local"].min()).total_seconds()
+        cart_addition_ratio = 100*(session_df["add_to_cart"].sum() / len(session_df)) if len(session_df) > 0 else 0.0
+        metrics.append(
+            {
+                "user_id": user_id,
+                "session_id": session_id,
+                "total_session_time": round(total_session_time, 2),
+                "cart_addition_ratio": round(cart_addition_ratio, 2),
+            }
+        )
+
+    return pd.DataFrame(metrics).sort_values(by=["user_id", "session_id"])
