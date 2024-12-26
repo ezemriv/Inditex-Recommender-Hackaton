@@ -5,9 +5,8 @@ import os
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
 data_folder = os.path.join(parent_folder, "data/raw")
-# sample_data = pd.read_csv(f"{data_folder}/train.csv", parse_dates=["timestamp_local"])
-sample_data = pd.read_parquet(os.path.join(parent_folder, "data/processed", "train.parquet"))
-
+sample_data = pd.read_csv(f"{data_folder}/train.csv", parse_dates=["timestamp_local"])
+# sample_data = pd.read_parquet(os.path.join(parent_folder, "data/processed", "train.parquet"))
 
 def test_get_session_metrics_1():
     df, user_id = sample_data.copy(deep=True), 179371
