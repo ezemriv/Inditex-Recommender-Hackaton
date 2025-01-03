@@ -44,11 +44,11 @@ def get_session_metrics(df: pd.DataFrame, user_id: int) -> pd.DataFrame:
         cart_addition_ratio = 100*(session_df["add_to_cart"].sum() / len(session_df)) if len(session_df) > 0 else 0.0
         metrics.append(
             {
-                "user_id": user_id,
-                "session_id": session_id,
+                "user_id": int(user_id),
+                "session_id": int(session_id),
                 "total_session_time": round(total_session_time, 2),
                 "cart_addition_ratio": round(cart_addition_ratio, 2),
             }
         )
 
-    return pd.DataFrame(metrics).sort_values(by=["user_id", "session_id"])
+    return pd.DataFrame(metrics).sort_values(by=["user_id", "session_id"]).reset_index(drop=True)
