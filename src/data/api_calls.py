@@ -20,7 +20,7 @@ def fetch_all_user_ids(retries=5, delay=2):
     print("Failed to fetch all user IDs after multiple attempts.")
     return None
 
-def fetch_user_data(user_id, filter_recent=True, retries=5, delay=2):
+def fetch_user_data(user_id, filter_recent=False, retries=5, delay=2):
     url = GET_ALL_USERS_ENDPOINT + f'/{user_id}'
     
     for attempt in range(retries):

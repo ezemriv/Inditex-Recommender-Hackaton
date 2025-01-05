@@ -14,7 +14,8 @@ TRAIN_DATA_PATH = os.path.join(RAW_PATH, 'train.csv')
 TEST_DATA_PATH = os.path.join(RAW_PATH, 'test.csv')
 
 # Processed Data Files
-USERS_DATA_PATH = os.path.join(PROCESSED_PATH, 'users.parquet')
+# USERS_DATA_PATH = os.path.join(PROCESSED_PATH, 'users.parquet')
+USERS_DATA_PATH = os.path.join(PROCESSED_PATH, 'users_combined.parquet')
 TRAIN_PARQUET_PATH = os.path.join(PROCESSED_PATH, 'train.parquet')
 TEST_PARQUET_PATH = os.path.join(PROCESSED_PATH, 'test.parquet')
 PRODUCTS_PARQUET_PATH = os.path.join(PROCESSED_PATH, 'products.parquet')

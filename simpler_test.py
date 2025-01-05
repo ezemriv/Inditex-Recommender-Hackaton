@@ -1,3 +1,8 @@
+#####################################################################################################
+#### This is a pytest file to test on the user_ids subset
+#### Just moved it to root in case that during submission it gives an error if inside tests/ folder
+#####################################################################################################
+
 # from data.session_metrics import get_session_metrics
 # import pandas as pd
 # import polars as pl
