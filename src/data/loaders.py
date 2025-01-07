@@ -1,7 +1,7 @@
 import polars as pl
 
 class PolarsLoader():
-    def __init__(self, sampling=False, file_type='csv'):
+    def __init__(self, sampling=False, n_sample = 1_000_000, file_type='csv'):
         """
         Initializes the PolarsLoader class.
 
@@ -10,6 +10,7 @@ class PolarsLoader():
         """
         self.sampling = sampling
         self.file_type = file_type
+        self.n_sample = n_sample
     
     def load_data(self, path, select_cols=None):
         
@@ -23,7 +24,7 @@ class PolarsLoader():
             polars.DataFrame: Loaded DataFrame without selected columns.
         """
         if self.sampling:
-            N_ROWS = 1_000_000
+            N_ROWS = self.n_sample
         else:
             N_ROWS = None
 
@@ -57,7 +58,7 @@ class PolarsLoader():
             polars.LazyFrame: LazyFrame object for the data.
         """
         if self.sampling:
-            N_ROWS = 1_000_000
+            N_ROWS = self.n_sample
         else:
             N_ROWS = None
 

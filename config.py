@@ -19,6 +19,15 @@ USERS_DATA_PATH = os.path.join(PROCESSED_PATH, 'users_combined.parquet')
 TRAIN_PARQUET_PATH = os.path.join(PROCESSED_PATH, 'train.parquet')
 TEST_PARQUET_PATH = os.path.join(PROCESSED_PATH, 'test.parquet')
 PRODUCTS_PARQUET_PATH = os.path.join(PROCESSED_PATH, 'products.parquet')
+PRODUCTS_PARQUET_PATH_IMPUTED = os.path.join(PROCESSED_PATH, 'products_imputed.parquet')
+
+# Similarity files
+PROD_SIM_MATRIX_PATH = os.path.join(PROCESSED_PATH, 'prod_sim_matrix.parquet')
+PROD_TOP_SIMILAR_PATH = os.path.join(PROCESSED_PATH, 'prod_top_similar.parquet')
+USER_SIM_MATRIX_PATH = os.path.join(PROCESSED_PATH, 'user_sim_matrix.parquet')
+
+# Candidates files
+ALL_PRODS_TRAINTEST_PATH = os.path.join(PROCESSED_PATH, 'all_prods_traintest.json')
 
 # Model Paths
 MODELS_PATH = os.path.join(ROOT, 'models')
