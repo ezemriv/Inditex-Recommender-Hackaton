@@ -1,5 +1,10 @@
 import time
 import tracemalloc
+import matplotlib.pyplot as plt
+import seaborn as sns
+from imblearn.pipeline import Pipeline
+import os
+import pandas as pd
 
 def timer_and_memory(func):
     def wrapper(*args, **kwargs):
@@ -30,3 +35,37 @@ def timer(func):
 
 def filter_polars(polars_df, column, value):
     return polars_df.filter(polars_df[column] == value)
+
+def plot_cross_validation_scores(train_scores, valid_scores):
+    """Plots and saves the cross-validation scores."""
+    plt.figure()
+    plt.plot(range(1, len(train_scores) + 1), train_scores,
+             marker='o', label='Train F1 Score', linestyle='-')
+    plt.plot(range(1, len(valid_scores) + 1), valid_scores,
+             marker='o', label='Validation F1 Score', linestyle='-')
+    plt.xlabel('Fold')
+    plt.ylabel('F1 Score')
+    plt.title('Train and Validation F1 Scores')
+    plt.legend()
+    plt.show()
+
+def plot_feature_importances(model, FEATURES):
+    """Plots and saves the feature importances."""
+    # Handle pipeline if oversampling is used
+    if isinstance(model, Pipeline):
+        classifier = model.named_steps['classifier']
+    else:
+        classifier = model
+
+    # Get feature importances
+    importances = classifier.feature_importances_
+    importances_df = pd.DataFrame({
+        'feature': FEATURES,
+        'importance': importances
+    }).sort_values(by='importance', ascending=False)
+
+    # Plot feature importances
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x='importance', y='feature', data=importances_df)
+    plt.title('Feature Importances')
+    plt.show()
