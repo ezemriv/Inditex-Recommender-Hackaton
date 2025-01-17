@@ -1,5 +1,7 @@
 # Project specific
 /data/
+/kaggle/
+kaggle_downloads
 
 # Ignore Python bytecode files
 __pycache__/
