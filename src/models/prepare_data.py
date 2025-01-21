@@ -27,29 +27,52 @@ class PRODUCTS:
         )
         cosine_sim_df.to_parquet(self.matrix_out_path)
 
-    def feature_engineering(self, df):
+    def normalize_embedding(self, products_df: pl.DataFrame) -> pl.DataFrame:
+    
+        # Normalized embedding
+        embeddings = np.stack(products_df['embedding'].to_numpy())
+        normalized = normalize(embeddings)
+        products_df = products_df.with_columns([pl.Series('embedding', normalized)])
+        
+        return products_df
+
+    def create_initial_extra_features(self, df: pl.DataFrame) -> pl.DataFrame:
+    
+        df = self.normalize_embedding(df)
+        
+        df = df.with_columns([
+            # Categorical frequencies
+            pl.col('color_id').count().over('family').alias('color_family_frequency'),
+            # Proporciones
+            (pl.col('discount').mean().over('family')).alias('family_discount_rate').cast(pl.Float32),
+            (pl.col('discount').mean().over('cod_section')).alias('section_discount_rate').cast(pl.Float32),
+            # Número de colores únicos en la familia
+            pl.col('color_id').n_unique().over('family').alias('family_unique_colors')
+        ])
+        
         return df
 
-    @timer
     def run(self):
         df = self.load_data()
         # self.calculate_similarity(df) --> DONE IN KAGGLE
-        df = self.feature_engineering(df)
+        df = self.create_initial_extra_features(df)
         df.write_parquet(self.engineered_path)
         return df
-
+    
 class TRAIN_TEST:
     
     def __init__(self, sampling=False, train_path=None, test_path=None, 
                  save_train_path=None, save_test_path=None, 
-                 topN_global=10):
+                 topN_global=10, products_df=None, users_df=None):
         self.sampling = sampling
         self.train_path = train_path
         self.test_path = test_path
         self.save_train_path = save_train_path
         self.save_test_path = save_test_path
         self.topN_global = topN_global
-
+        self.products_df = products_df
+        self.users_df = users_df
+        
     def load_data(self):
         loader = PolarsLoader(sampling=self.sampling, file_type='parquet')
         train = loader.load_data(path=self.train_path)
@@ -64,16 +87,20 @@ class TRAIN_TEST:
     
     def impute_train_test(self, df):
         
+        # Cleaning and sorting
+        df = (df.drop("date")
+            .sort("timestamp_local")
+        )
+        
         # Add tag for known user first
         df = df.with_columns([
-            pl.when(pl.col("user_id").is_null()).then(pl.lit(-1)).otherwise(pl.lit(1)).alias("known_user"),
+            pl.when(pl.col("user_id").is_null()).then(pl.lit(-1)).otherwise(pl.lit(1)).alias("known_user").cast(pl.Int8),
         ])
 
         return df.with_columns([pl.col("user_id").fill_null(-1).cast(pl.Int32),
                         pl.col("pagetype").fill_null(pl.col("pagetype").mode()),
                         ])
     
-    @timer_and_memory
     def create_concatenated_features(self, train: pl.DataFrame, 
                                test: pl.DataFrame) -> tuple[pl.DataFrame, 
                                                             pl.DataFrame]:
@@ -93,6 +120,7 @@ class TRAIN_TEST:
                     .with_columns([pl.lit(None).alias('add_to_cart')])
                     .select(sorted(train.columns, reverse=True))
                     .with_columns([pl.lit(0).alias('flag')])
+                      
         )
         
         # Prepare train dataframe with flag
@@ -133,15 +161,14 @@ class TRAIN_TEST:
         
         return train_processed, test_processed
 
-    @timer_and_memory
     def feature_engineering_no_candidate_dependent(self, df: pl.DataFrame) -> pl.DataFrame:
 
         # Cleaning and sorting
-        df_ = (df.drop("date")
-            .sort("timestamp_local")
-        )
+        #df_ = (df.drop("date")
+        #    .sort("timestamp_local")
+        #)
 
-        df_ = df_.with_columns([
+        df_ = df.with_columns([
             # Calculate the difference in timestamps within each session
             (pl.col("timestamp_local").diff().over("session_id").cast(pl.Float32) / 1_000_000)
             .round(1).alias("seconds_since_last_interaction"),
@@ -163,21 +190,23 @@ class TRAIN_TEST:
             pl.col("timestamp_local").dt.weekday().alias("weekday_number"),
             
             # Extracting weekday name
-            pl.col("timestamp_local").dt.strftime("%A").alias("weekday_name").cast(pl.Categorical),
+            # pl.col("timestamp_local").dt.strftime("%A").alias("weekday_name").cast(pl.Categorical),
             
             # Extracting hour
             pl.col("timestamp_local").dt.hour().alias("hour")
         ])
         
         df_ = df_.with_columns([
-                    pl.when((pl.col("hour") >= 6) & (pl.col("hour") < 12)).then(pl.lit("Morning"))
-                    .when((pl.col("hour") >= 12) & (pl.col("hour") < 18)).then(pl.lit("Afternoon"))
-                    .when((pl.col("hour") >= 18) & (pl.col("hour") < 24)).then(pl.lit("Night"))
-                    .otherwise(pl.lit("Late Night"))
-                    .cast(pl.Categorical)
-                    .alias("day_frame")
-                ])
-
+                        pl.when((pl.col("hour") >= 6) & (pl.col("hour") < 12)).then(pl.lit(0))
+                        .when((pl.col("hour") >= 12) & (pl.col("hour") < 18)).then(pl.lit(1))
+                        .when((pl.col("hour") >= 18) & (pl.col("hour") < 24)).then(pl.lit(2))
+                        .otherwise(pl.lit(3))
+                        .cast(pl.UInt8)
+                        .alias("day_frame")
+                    ])
+        # Others
+        df_ = df_.with_columns(pl.col('timestamp_local').count().over('session_id').alias('total_session_interactions'))
+        
         return df_
     
     def select_global_candidates(self, train_df):
@@ -219,7 +248,7 @@ class TRAIN_TEST:
                             'total_session_time',
                             'day_number',
                             'weekday_number',
-                            'weekday_name',
+                            # 'weekday_name',
                             'hour',
                             'day_frame']
         
@@ -245,11 +274,44 @@ class TRAIN_TEST:
         df = df.with_columns([
             # Assign a cumulative count for each partnumber within a session
             pl.col("partnumber").cum_count().over(["session_id", "partnumber"]).alias("product_interaction_count")
-        ]).fill_null(strategy="zero")
+        ])
 
+        # Fill final nulls and correct issues
+        remain_nulls = [
+            'known_user',
+            'page_cart_ratio',
+            'device_cart_ratio',
+            'country_cart_ratio',
+            'user_previous_cart_additions',
+            'user_previous_interactions',
+        ]
+        
+        df = df.with_columns(
+            pl.col(col).fill_null(strategy='max').over("user_id") 
+                                    for col in remain_nulls
+        )
+
+        df = df.with_columns([
+            pl.when(pl.col("known_user") == -1)
+                .then(pl.lit(-1))
+                .otherwise(pl.col("user_previous_cart_additions"))
+                .alias("user_previous_cart_additions").cast(pl.Int16),
+            pl.when(pl.col("known_user") == -1)
+                .then(pl.lit(-1))
+                .otherwise(pl.col("user_previous_interactions"))
+                .alias("user_previous_interactions").cast(pl.Int16),    
+        ])
+        
+        return df
+
+    def merge_datasets(self, df, products_df, users_df):
+        df = (df
+              .drop('timestamp_local')
+              .join(products_df.drop('embedding'), on='partnumber', how="left"))
+        df = df.join(users_df, on='user_id', how="left")
         return df
     
-    @timer
+    @timer_and_memory
     def run(self, process_train=True, candidates_from_train=None):
         """
         Processes train and test data, with options to skip training data processing
@@ -266,8 +328,8 @@ class TRAIN_TEST:
         """
         # Load data
         print("Loading train and test data...")
-        # train, test = self.load_data()
-        train, test = self.load_data_lazy()
+        train, test = self.load_data()
+        # train, test = self.load_data_lazy()
         print("Imputing missing values...")
         train = self.impute_train_test(train)
         test = self.impute_train_test(test)
@@ -282,10 +344,7 @@ class TRAIN_TEST:
             #######################
             ### IF LAZY LOADING ###
             #######################
-            train_eng = train_eng.collect()
-
-            print("Saving parquet file...")
-            train_eng.write_parquet(self.save_train_path)
+            # train_eng = train_eng.collect()
         else:
             print("Skipping train processing. Loading preprocessed data...")
             train_eng = pl.read_parquet(self.save_train_path)
@@ -308,15 +367,25 @@ class TRAIN_TEST:
         #######################
         ### IF LAZY LOADING ###
         #######################
-        test_eng = test_eng.collect()
+        # test_eng = test_eng.collect()
 
         test_extended = self.add_candidates_to_test(test_eng, global_candidates)
         test_extended = self.feature_engineering_candidate_dependent(test_extended)
-        print("Final size of test data:", len(test_extended))
-        test_extended.write_parquet(self.save_test_path)
+        
+        # Merge with users and products
+        final_train = self.merge_datasets(train_eng, self.products_df, self.users_df)
+        final_test = self.merge_datasets(test_extended, self.products_df, self.users_df)
 
-        print(f"Data processing completed.")
-        return train_eng, test_extended
+        print("Saving final data to parquet...")
+        print("Final size of test data:", len(final_test))
+        final_test.write_parquet(self.save_test_path)
+        if process_train:
+            print("Saving parquet file...")
+            final_train.write_parquet(self.save_train_path)
+            
+        print("Data processing completed.")
+        
+        return final_train, final_test
     
 class USERS:
     def __init__(self, processed_path, engineered_path):
