@@ -1,10 +1,11 @@
+# Script to process the train dataset for task1-q4 (too heavy to run on task1 notebook)
+
 import polars as pl
 import argparse
 
 from config import TRAIN_DATA_PATH
 from src.utils import timer
 
-# Function to process the train dataset for task1-q4
 @timer
 def process_large_dataset(train_path, sampling):
     """

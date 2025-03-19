@@ -1,3 +1,5 @@
+# Script to cast down train and test data
+
 from config import PROCESSED_PATH, TRAIN_DATA_PATH, TEST_DATA_PATH
 import polars as pl
 import os
